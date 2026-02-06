@@ -1,0 +1,64 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../generated/prisma"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Menu items available for ordering
+model MenuItem {
+  id          String      @id @default(uuid())
+  name        String
+  description String
+  price       Float
+  imageUrl    String
+  category    String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  orderItems  OrderItem[]
+
+  @@map("menu_items")
+}
+
+// Customer order
+model Order {
+  id              String      @id @default(uuid())
+  customerName    String
+  customerPhone   String
+  customerAddress String
+  status          OrderStatus @default(ORDER_RECEIVED)
+  totalAmount     Float
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  items           OrderItem[]
+
+  @@map("orders")
+}
+
+// Order line item linking orders to menu items
+model OrderItem {
+  id         String   @id @default(uuid())
+  quantity   Int
+  unitPrice  Float
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@map("order_items")
+}
+
+// Order status enum for tracking
+enum OrderStatus {
+  ORDER_RECEIVED
+  PREPARING
+  OUT_FOR_DELIVERY
+  DELIVERED
+}
