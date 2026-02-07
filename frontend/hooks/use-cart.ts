@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 import type { MenuItem } from "@/lib/api";
 
 export interface CartItem {
@@ -18,7 +18,19 @@ const CART_STORAGE_KEY = "food-delivery-cart";
 
 function saveCartToStorage(items: CartItem[]) {
   if (typeof window === "undefined") return;
-  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
+  const value = JSON.stringify(items);
+  localStorage.setItem(CART_STORAGE_KEY, value);
+  window.dispatchEvent(
+    new StorageEvent("storage", { key: CART_STORAGE_KEY, newValue: value }),
+  );
+}
+
+function readCart(): CartItem[] {
+  try {
+    return JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || "[]");
+  } catch {
+    return [];
+  }
 }
 
 function subscribe(callback: () => void) {
@@ -36,64 +48,51 @@ function getServerSnapshot(): string {
 
 export function useCart() {
   const storedData = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const [items, setItems] = useState<CartItem[]>(() => {
+
+  const items = useMemo<CartItem[]>(() => {
     try {
       return JSON.parse(storedData);
     } catch {
       return [];
     }
-  });
-
-  useEffect(() => {
-    try {
-      const parsed = JSON.parse(storedData);
-      setItems(parsed);
-    } catch {
-      setItems([]);
-    }
   }, [storedData]);
 
-  const updateItems = useCallback((updater: (prev: CartItem[]) => CartItem[]) => {
-    setItems((prev) => {
-      const next = updater(prev);
-      saveCartToStorage(next);
-      return next;
-    });
-  }, []);
-
   const addItem = useCallback((menuItem: MenuItem) => {
-    updateItems((prev) => {
-      const existing = prev.find((item) => item.menuItem.id === menuItem.id);
-      if (existing) {
-        return prev.map((item) =>
+    const current = readCart();
+    const existing = current.find((item) => item.menuItem.id === menuItem.id);
+    if (existing) {
+      saveCartToStorage(
+        current.map((item) =>
           item.menuItem.id === menuItem.id
             ? { ...item, quantity: item.quantity + 1 }
             : item,
-        );
-      }
-      return [...prev, { menuItem, quantity: 1 }];
-    });
-  }, [updateItems]);
+        ),
+      );
+    } else {
+      saveCartToStorage([...current, { menuItem, quantity: 1 }]);
+    }
+  }, []);
 
   const removeItem = useCallback((menuItemId: string) => {
-    updateItems((prev) => prev.filter((item) => item.menuItem.id !== menuItemId));
-  }, [updateItems]);
+    saveCartToStorage(readCart().filter((item) => item.menuItem.id !== menuItemId));
+  }, []);
 
   const updateQuantity = useCallback((menuItemId: string, quantity: number) => {
+    const current = readCart();
     if (quantity <= 0) {
-      updateItems((prev) => prev.filter((item) => item.menuItem.id !== menuItemId));
+      saveCartToStorage(current.filter((item) => item.menuItem.id !== menuItemId));
       return;
     }
-    updateItems((prev) =>
-      prev.map((item) =>
+    saveCartToStorage(
+      current.map((item) =>
         item.menuItem.id === menuItemId ? { ...item, quantity } : item,
       ),
     );
-  }, [updateItems]);
+  }, []);
 
   const clearCart = useCallback(() => {
-    updateItems(() => []);
-  }, [updateItems]);
+    saveCartToStorage([]);
+  }, []);
 
   const totalAmount = items.reduce(
     (sum, item) => sum + item.menuItem.price * item.quantity,
@@ -102,19 +101,9 @@ export function useCart() {
 
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
 
-  const state: CartState = {
-    items,
-    totalAmount,
-    totalItems,
-  };
+  const state: CartState = { items, totalAmount, totalItems };
 
-  return {
-    ...state,
-    addItem,
-    removeItem,
-    updateQuantity,
-    clearCart,
-  };
+  return { ...state, addItem, removeItem, updateQuantity, clearCart };
 }
 
 export type UseCartReturn = ReturnType<typeof useCart>;
