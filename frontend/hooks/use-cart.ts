@@ -16,16 +16,6 @@ interface CartState {
 
 const CART_STORAGE_KEY = "food-delivery-cart";
 
-function getStoredCart(): CartItem[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const stored = localStorage.getItem(CART_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
-    return [];
-  }
-}
-
 function saveCartToStorage(items: CartItem[]) {
   if (typeof window === "undefined") return;
   localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));

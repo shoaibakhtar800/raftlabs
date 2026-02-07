@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import request from "supertest";
 import app from "../app.js";
 
-// Mock Prisma
 vi.mock("../lib/prisma.js", () => {
   return {
     default: {

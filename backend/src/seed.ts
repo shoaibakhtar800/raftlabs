@@ -106,12 +106,10 @@ const menuItems = [
 async function seed() {
   console.log("🌱 Seeding database...");
 
-  // Clear existing data
   await prisma.orderItem.deleteMany();
   await prisma.order.deleteMany();
   await prisma.menuItem.deleteMany();
 
-  // Seed menu items
   for (const item of menuItems) {
     await prisma.menuItem.create({
       data: item,
@@ -120,7 +118,6 @@ async function seed() {
 
   console.log(`✅ Seeded ${menuItems.length} menu items`);
 
-  // Verify
   const count = await prisma.menuItem.count();
   console.log(`📊 Total menu items in database: ${count}`);
 
