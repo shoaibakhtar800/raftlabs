@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import request from "supertest";
-import app from "../app";
+import app from "../app.js";
 
-vi.mock("../lib/prisma", () => {
+vi.mock("../lib/prisma.js", () => {
   return {
     default: {
       menuItem: {
@@ -13,7 +13,7 @@ vi.mock("../lib/prisma", () => {
   };
 });
 
-import prisma from "../lib/prisma";
+import prisma from "../lib/prisma.js";
 
 const mockMenuItems = [
   {

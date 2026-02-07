@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
-import prisma from "../lib/prisma";
-import { uuidParamSchema } from "../lib/validation";
+import prisma from "../lib/prisma.js";
+import { uuidParamSchema } from "../lib/validation.js";
 
 const router = Router();
 
